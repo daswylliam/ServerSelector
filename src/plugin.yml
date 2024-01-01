@@ -1,0 +1,8 @@
+name: ServerSelector
+author: daswylliam
+version: 1.0.0
+api-version: 1.13
+main: de.prankgo.serverselector.main.Main
+
+commands:
+   serverselector:
