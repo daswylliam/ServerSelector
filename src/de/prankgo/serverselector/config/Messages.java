@@ -12,6 +12,7 @@ public class Messages {
 	private String notOnline;
 	private String startService;
 	private String stopService;
+	private String isStarting;
 	
 	public Messages() {
 		instance = this;
@@ -25,6 +26,7 @@ public class Messages {
 		notOnline = color(MessagesFile.get().getString("notOnline").replaceAll("%prefix%", prefix));
 		startService = color(MessagesFile.get().getString("startService").replaceAll("%prefix%", prefix));
 		stopService = color(MessagesFile.get().getString("stopService").replaceAll("%prefix%", prefix));
+		isStarting = color(MessagesFile.get().getString("isStarting").replaceAll("%prefix%", prefix));
 	}
 	
 	public String color(String string) {
@@ -55,8 +57,13 @@ public class Messages {
 		return stopService.replaceAll("%server%", server);
 	}
 	
+	public String getIsStarting(String server) {
+		return isStarting.replaceAll("%server%", server);
+	}
+	
 	public static Messages getInstance() {
 		return instance;
 	}
+	
 	
 }

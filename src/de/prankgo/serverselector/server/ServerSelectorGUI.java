@@ -9,6 +9,7 @@ import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryView;
 
 import com.google.common.io.ByteArrayDataOutput;
 import com.google.common.io.ByteStreams;
@@ -22,10 +23,36 @@ import de.prankgo.serverselector.utils.ServiceManager;
 public class ServerSelectorGUI implements Listener {
 
 	private Main plugin;
-	private final String GUI_NAME = "§5§lServerSelector", START_STOP_SERVER_GUI_NAME = "§5§lServer Manager";
+	private final String GUI_NAME = "ServerSelector", START_STOP_SERVER_GUI_NAME = "Server Manager";
+	
+	private int taskID;
+	private boolean isUpdating;
 	
 	public ServerSelectorGUI(Main plugin) {
 		this.plugin = plugin;
+	}
+	
+	public void startUpdating() {
+		if(isUpdating) return;
+		isUpdating = true;
+		taskID = Bukkit.getScheduler().scheduleSyncRepeatingTask(plugin, new Runnable() {
+			
+			@Override
+			public void run() {
+				for(Player c : Bukkit.getOnlinePlayers()) {
+					if(c.getOpenInventory() != null && c.getOpenInventory().getTitle().equals(GUI_NAME)) {
+						update(c, c.getOpenInventory());
+					}
+				}
+				
+			}
+		}, 50, 50);
+	}
+	
+	public void stopUpdating() {
+		if(!isUpdating) return;
+		isUpdating = false;
+		Bukkit.getScheduler().cancelTask(taskID);
 	}
 	
 	public void open(Player p) {
@@ -38,16 +65,33 @@ public class ServerSelectorGUI implements Listener {
 		Inventory inv = Bukkit.createInventory(null, size, GUI_NAME);
 		for(int i = 0; i < amount; i++) {
 			if(p.hasPermission(ServerList.get()[i].getPermission()) || p.hasPermission("serverselector.join.*")) {
-				if(ServiceManager.getInstance().isServiceOnline(ServerList.get()[i].getService())) {
-					inv.setItem(i, new ItemBuilder(ServerList.get()[i].getMaterial()).setAmount(1).setLore("§aOnline").setName("§e" + ServerList.get()[i].getName()).addGlow().build());
+				if(ServiceManager.getInstance().isStarting(ServerList.get()[i].getService())) {
+					inv.setItem(i, new ItemBuilder(ServerList.get()[i].getMaterial()).setAmount(1).setLore("§6Startet...").setName("§e" + ServerList.get()[i].getName()).addGlow().build());
+				} else if(ServiceManager.getInstance().isServiceOnline(ServerList.get()[i].getService())) {
+					inv.setItem(i, new ItemBuilder(ServerList.get()[i].getMaterial()).setAmount(1).setLore("§aOnline " + onlineCount(ServerList.get()[i])).setName("§e" + ServerList.get()[i].getName()).addGlow().build());
 				} else
 					inv.setItem(i, new ItemBuilder(ServerList.get()[i].getMaterial()).setAmount(1).setLore("§cOffline").setName("§e" + ServerList.get()[i].getName()).build());
 			} else
 				inv.setItem(i, new ItemBuilder(Material.BARRIER).setAmount(1).setName("§4§lKEINE BERECHTIGUNG!").build());
-
 			
 		}
 		p.openInventory(inv);
+	}
+	
+	public void update(Player p, InventoryView invView) {
+		Inventory inv = invView.getTopInventory();
+		for(int i = 0; i < ServerSelectorFile.get().getInt("amount"); i++) {
+			if(p.hasPermission(ServerList.get()[i].getPermission()) || p.hasPermission("serverselector.join.*")) {
+				if(ServiceManager.getInstance().isStarting(ServerList.get()[i].getService())) {
+					inv.setItem(i, new ItemBuilder(ServerList.get()[i].getMaterial()).setAmount(1).setLore("§6Startet...").setName("§e" + ServerList.get()[i].getName()).addGlow().build());
+				} else if(ServiceManager.getInstance().isServiceOnline(ServerList.get()[i].getService())) {
+					inv.setItem(i, new ItemBuilder(ServerList.get()[i].getMaterial()).setAmount(1).setLore("§aOnline " + onlineCount(ServerList.get()[i])).setName("§e" + ServerList.get()[i].getName()).addGlow().build());
+				} else
+					inv.setItem(i, new ItemBuilder(ServerList.get()[i].getMaterial()).setAmount(1).setLore("§cOffline").setName("§e" + ServerList.get()[i].getName()).build());
+			} else
+				inv.setItem(i, new ItemBuilder(Material.BARRIER).setAmount(1).setName("§4§lKEINE BERECHTIGUNG!").build());
+			
+		}
 	}
 	
 	public void open(Player p, Server server) {
@@ -71,7 +115,10 @@ public class ServerSelectorGUI implements Listener {
 						String displayname = e.getCurrentItem().getItemMeta().getDisplayName().replace("§e", "");
 						if(displayname.equals(server.getName())) {
 							if(p.hasPermission("serverselector.join.*") || p.hasPermission(server.getPermission())) {
-								if(ServiceManager.getInstance().isServiceOnline(server.getService())) {
+								if(ServiceManager.getInstance().isStarting(server.getService())) {
+									p.sendMessage(Messages.getInstance().getIsStarting(server.getName()));
+									p.closeInventory();
+								} else if(ServiceManager.getInstance().isServiceOnline(server.getService())) {
 									p.sendMessage(Messages.getInstance().getConnect(server.getName()));
 									ServiceManager.getInstance().connect(server.getService(), p);
 									p.closeInventory();
@@ -100,7 +147,10 @@ public class ServerSelectorGUI implements Listener {
 								open(p, server);
 							} else {
 								if(p.hasPermission("serverselector.join.*") || p.hasPermission(server.getPermission())) {
-									if(ServiceManager.getInstance().isServiceOnline(server.getService())) {
+									if(ServiceManager.getInstance().isStarting(server.getService())) {
+										p.sendMessage(Messages.getInstance().getIsStarting(server.getName()));
+										p.closeInventory();
+									} else if(ServiceManager.getInstance().isServiceOnline(server.getService())) {
 										p.sendMessage(Messages.getInstance().getConnect(server.getName()));
 										
 										ServiceManager.getInstance().connect(server.getService(), p);
@@ -151,6 +201,10 @@ public class ServerSelectorGUI implements Listener {
 				}
 			}
 		}
+	}
+	
+	public String onlineCount(Server server) {
+		return "§8(§7" + ServiceManager.getInstance().getOnlinePlayerCount(server.getService()) + "§8/§7" + ServiceManager.getInstance().getMaxPlayerCount(server.getService()) + "§8)";
 	}
 	
 }

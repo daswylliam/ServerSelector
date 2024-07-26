@@ -7,6 +7,7 @@ import org.bukkit.entity.Player;
 
 import de.prankgo.serverselector.config.Messages;
 import de.prankgo.serverselector.main.Main;
+import de.prankgo.serverselector.utils.ServiceManager;
 
 public class ServerSelectorCommand implements CommandExecutor {
 

@@ -14,6 +14,12 @@ import de.dytanic.cloudnet.driver.CloudNetDriver;
 import de.dytanic.cloudnet.driver.service.ServiceInfoSnapshot;
 import de.dytanic.cloudnet.driver.service.ServiceLifeCycle;
 import de.dytanic.cloudnet.driver.service.ServiceTask;
+import de.dytanic.cloudnet.driver.service.property.ServiceProperty;
+import de.dytanic.cloudnet.ext.bridge.BridgeHelper;
+import de.dytanic.cloudnet.ext.bridge.BridgeServiceProperty;
+import de.dytanic.cloudnet.ext.bridge.bukkit.BukkitCloudNetHelper;
+import de.dytanic.cloudnet.ext.bridge.node.CloudNetBridgeModule;
+import de.dytanic.cloudnet.ext.bridge.server.BridgeServerHelper;
 import de.prankgo.serverselector.main.Main;
 
 public class ServiceManager {
@@ -38,6 +44,14 @@ public class ServiceManager {
 		}
 		
 		return value;
+	}
+
+	public void startFromTask(String taskName) {
+		ServiceTask serviceTask = CloudNetDriver.getInstance().getServiceTaskProvider().getServiceTask(taskName);
+		if(serviceTask != null) {
+			ServiceInfoSnapshot snapshot = CloudNetDriver.getInstance().getCloudServiceFactory().createCloudService(serviceTask);
+			snapshot.provider().startAsync();
+		}
 	}
 	
 	public void start(String serviceName) {
@@ -68,6 +82,53 @@ public class ServiceManager {
 				.collect(Collectors.toList())) {
 			snapshot.provider().stopAsync();
 		}
+	}
+	
+	public Boolean isStarting(String serviceName) {
+		for(ServiceInfoSnapshot snapshot : CloudNetDriver.getInstance().getCloudServiceProvider().getCloudServices().stream()
+				.filter(ServiceInfoSnapshot::isConnected)
+				.filter(it -> it.getServiceId().getName().equals(serviceName))
+				.collect(Collectors.toList())) {
+			return snapshot.getProperty(BridgeServiceProperty.IS_STARTING).orElse(false);
+			
+		}
+		return false;
+	}
+	
+	public int getOnlinePlayerCount(String serviceName) {
+		for(ServiceInfoSnapshot snapshot : CloudNetDriver.getInstance().getCloudServiceProvider().getCloudServices().stream()
+				.filter(ServiceInfoSnapshot::isConnected)
+				.filter(it -> it.getServiceId().getName().equals(serviceName))
+				.collect(Collectors.toList())) {
+			return snapshot.getProperty(BridgeServiceProperty.ONLINE_COUNT).orElse(0);
+		} 
+		return 0;
+	}
+	
+	public int getMaxPlayerCount(String serviceName) {
+		for(ServiceInfoSnapshot snapshot : CloudNetDriver.getInstance().getCloudServiceProvider().getCloudServices().stream()
+				.filter(ServiceInfoSnapshot::isConnected)
+				.filter(it -> it.getServiceId().getName().equals(serviceName))
+				.collect(Collectors.toList())) {
+			return snapshot.getProperty(BridgeServiceProperty.MAX_PLAYERS).orElse(0);
+		} 
+		return 0;
+	}
+	
+	public ServiceProperty<Boolean> getState(String serviceName) {
+		for(ServiceInfoSnapshot snapshot : CloudNetDriver.getInstance().getCloudServiceProvider().getCloudServices().stream()
+				.filter(ServiceInfoSnapshot::isConnected)
+				.filter(it -> it.getServiceId().getName().equals(serviceName))
+				.collect(Collectors.toList())) {
+			if(snapshot.getProperty(BridgeServiceProperty.IS_ONLINE).orElse(false)) {
+				return BridgeServiceProperty.IS_ONLINE;
+			} else if(snapshot.getProperty(BridgeServiceProperty.IS_STARTING).orElse(false)) {
+				return BridgeServiceProperty.IS_STARTING;
+			} else
+				return null;
+			
+		}
+		return null;
 	}
 	
 	public void connect(String serviceName, Player p) {

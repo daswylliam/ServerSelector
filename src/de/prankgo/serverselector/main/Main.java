@@ -13,7 +13,7 @@ import de.prankgo.serverselector.utils.ServiceManager;
 
 public class Main extends JavaPlugin {
 
-	public final static String NAME = "ServerSelector", VERSION = "1.0.0", AUTHOR = "daswylliam";
+	public final static String NAME = "ServerSelector", VERSION = "1.1.0", AUTHOR = "daswylliam";
 	
 	private Messages messages;
 	private ServiceManager serviceManager;
@@ -28,6 +28,7 @@ public class Main extends JavaPlugin {
 		MessagesFile.get().addDefault("notOnline", "%prefix% &c%server% &cist nicht Online!");
 		MessagesFile.get().addDefault("startService", "%prefix% &7Der Server &6%server% &7wird &agestartet&7.");
 		MessagesFile.get().addDefault("stopService", "%prefix% &7Der Server &6%server% &7wird &cgestoppt&7.");
+		MessagesFile.get().addDefault("isStarting", "%prefix% &cDer Server &c%server% &cstartet gerade!");
 		MessagesFile.get().options().copyDefaults(true);
 		MessagesFile.save();
 		
@@ -54,6 +55,8 @@ public class Main extends JavaPlugin {
 		getServer().getMessenger().registerOutgoingPluginChannel(this, "BungeeCord");
 		
 		getLogger().info(NAME + " v" + VERSION + " von " + AUTHOR + " wurde erfolgreich aktiviert.");
+		
+		serverSelectorGUI.startUpdating();
 	}
 	
 	
